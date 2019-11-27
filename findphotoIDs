@@ -1,0 +1,3 @@
+select photoID 
+from photo 
+where (allFollowers=True and photoPoster in (select username_followed from follow where username_follower=session["username"])
