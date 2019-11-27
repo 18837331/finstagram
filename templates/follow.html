@@ -1,0 +1,31 @@
+<html>
+<head>
+</head>
+<body>
+
+
+Who would you like to follow?
+<br>
+
+<form action="/add" method="GET">
+
+
+{% for line in user_list %}
+<input type="radio" name="user" value={{line.username}}>{{line.username}}</input>
+	<br>
+{% endfor %}
+
+<input type="submit" value="follow">
+
+</form>
+{% if message %}
+            {{ message }}
+        {% endif %}
+<a href="/home">back</a>
+
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>

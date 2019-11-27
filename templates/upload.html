@@ -1,0 +1,25 @@
+<html>
+    <head>
+        <title>Image Upload</title>
+    </head>
+    <body>
+        <h1>Upload an Image!</h1>
+        <div>
+            <form action="/uploadImage" method="post" enctype="multipart/form-data">
+                <input type="file" name="imageToUpload" accept="image/*">
+                <br/>
+                All followers?<br>
+                <input type="radio" name="options" value=1>yes<br>
+                <input type="radio" name="options" value=0>no<br>
+                <input type="text" name="caption" placeholder="Caption">
+                <br/>
+                <input type="submit" value="Upload">
+            </form>
+        </div>
+        {% if message %}
+            {{ message }}
+        {% endif %}
+        <br/>
+        <a href="/">Go back</a>
+    </body>
+</html>
