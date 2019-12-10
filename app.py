@@ -26,7 +26,6 @@ def login_required(f):
         if not "username" in session:
             return redirect(url_for("login"))
         return f(*args, **kwargs)
-
     return dec
 
 
@@ -52,11 +51,37 @@ def upload():
 @app.route("/images", methods=["GET"])
 @login_required
 def images():
-    query = "select * from photo where allFollowers=True and photoPoster in (select username_followed from follow  where username_follower=%s)"
+    query = "select * from photo where allFollowers=True and photoPoster in (select username_followed from follow where username_follower=%s)"
     with connection.cursor() as cursor:
         cursor.execute(query,session["username"])
     data = cursor.fetchall()
-    return render_template("images.html", images=data)
+    query2="select * from photo where photoID in (select photoID from sharedwith where (groupOwner,groupName) in (select owner_username , groupName from belongto where member_username=%s))"
+    with connection.cursor() as cursor:
+        cursor.execute(query2,session["username"])
+    data2 = cursor.fetchall()
+
+    return render_template("images.html", images=data, images2=data2)
+
+
+@app.route("/view", methods=["GET","POST"])
+@login_required
+def view():
+    ID = request.args['image']
+    query ="select * from person inner join photo on photo.photoPoster=person.username where photoID=%s"
+    query2="select * from tagged inner join person on tagged.username= person.username where photoID=%s and tagstatus=True"
+    with connection.cursor() as cursor:
+        cursor.execute(query,ID)
+    data = cursor.fetchone()
+    likes="select * from likes inner join person on likes.username= person.username where photoID=%s"
+    with connection.cursor() as cursor:
+        cursor.execute(likes,ID)
+        data2 = cursor.fetchall()
+
+    with connection.cursor() as cursor:
+        cursor.execute(query2,ID)
+        data3 = cursor.fetchall()
+
+    return render_template("imgDetails.html",image=data, taggs=data3, likes=data2)
 
 
 @app.route("/image/<image_name>", methods=["GET"])
@@ -108,7 +133,6 @@ def registerAuth():
         hashedPassword = hashlib.sha256(plaintextPasword.encode("utf-8")).hexdigest()
         firstName = requestData["fname"]
         lastName = requestData["lname"]
-
         try:
             with connection.cursor() as cursor:
                 query = "INSERT INTO person (username, password, firstName, lastName) VALUES (%s, %s, %s, %s)"
@@ -139,32 +163,23 @@ def upload_image():
         image_file.save(filepath)
         caption=request.form["caption"]
         all_followers=request.form["options"]
+        groupName=request.form["share"]
         query = "INSERT INTO `Photo`(`postingdate`, `filepath`, `allFollowers`, `caption`, `photoPoster`) VALUES (%s,%s,%s,%s,%s);"
         with connection.cursor() as cursor:
-            cursor.execute(query, (time.strftime('%Y-%m-%d %H:%M:%S'), image_name,all_followers,caption,session['username']))
+            cursor.execute(query, (time.strftime('%Y-%m-%d %H:%M:%S'), image_name, all_followers,caption,session['username']))
         message = "Image has been successfully uploaded."
+        query2= "select max(photoID) as photoID from photo"
+        with connection.cursor() as cursor:
+            cursor.execute(query2)
+        ID=cursor.fetchone()
+        photoID=ID["photoID"]
+        query3= "insert into sharedwith value(%s,%s,%s)"
+        with connection.cursor() as cursor:
+            cursor.execute(query3,(session['username'],groupName,photoID))
         return render_template("upload.html", message=message)
     else:
         message = "Failed to upload image."
         return render_template("upload.html", message=message)
-
-
-@app.route("/search", methods=["GET"])
-@login_required
-def search():
-    return render_template("search.html")
-
-
-@app.route("/searchimg", methods=["GET"])
-@login_required
-def search_image():
-    requestData = request.form
-    imgID = requestData["imgID"]
-    query = "select* from photo where photoID=%s"
-    with connection.cursor() as cursor:
-        cursor.execute(query, (imgID))
-    data = cursor.fetchone()
-    return render_template("images.html", images=data)
 
 
 
@@ -172,9 +187,10 @@ def search_image():
 @app.route("/follow", methods=["GET"])
 @login_required
 def follow():
+    self = session["username"]
     with connection.cursor() as cursor:
-        query = 'SELECT DISTINCT username FROM Person'
-        cursor.execute(query)
+        query = 'SELECT DISTINCT username FROM Person where username not in (select username_followed from follow where username_follower=%s)'
+        cursor.execute(query,self )
         data = cursor.fetchall()
         cursor.close()
         return render_template('follow.html', user_list=data)
@@ -184,12 +200,39 @@ def follow():
 @login_required
 def add():
     username=request.args['user']
-    query="INSERT INTO `Follow`(`username_followed`, `username_follower`, `followstatus`) VALUES (%s,%s,True)"
+    query="INSERT INTO `Follow`(`username_followed`, `username_follower`, `followstatus`) VALUES (%s,%s,False)"
     with connection.cursor() as cursor:
         self=session['username']
         cursor.execute(query,(username, self))
     message = "follow succeed"
-    return render_template("follow.html", message=message)
+    return render_template("home.html", username=session["username"])
+
+
+@app.route('/manageFollow', methods=["GET", "POST"])
+@login_required
+def show():
+    self=session["username"]
+    query="select username_follower from follow where username_followed=%s and followstatus=false"
+    with connection.cursor() as cursor:
+        cursor.execute(query, self)
+        data = cursor.fetchall()
+        cursor.close()
+    return render_template('manageFollow.html', user_list=data)
+
+
+@app.route('/accept', methods=["GET", "POST"])
+@login_required
+def accept():
+    query="UPDATE follow SET followstatus=True WHERE username_followed=%s and username_follower=%s;"
+    query2="delete from follow where username_followed=%s and username_follower=%s"
+    self=session['username']
+    followed = request.args['user']
+    with connection.cursor() as cursor:
+        if request.args['choice']=="accept":
+            cursor.execute(query,(self,followed))
+        else:
+            cursor.execute(query2, (self, followed))
+    return render_template("home.html",username=session["username"])
 
 
 @app.route('/friendfroup', methods=["GET", "POST"])
@@ -198,6 +241,82 @@ def friendgroup():
     return render_template("friendfroup.html", username=session["username"])
 
 
+@app.route('/create', methods=["GET", "POST"])
+@login_required
+def create():
+    return render_template("createFriendgroup.html")
+
+
+@app.route('/createf', methods=["POST","GET"])
+@login_required
+def createf():
+    if request.method == 'POST':
+        requestData = request.form
+        groupname = requestData.get("groupname")
+        description = requestData.get("description")
+        self = session['username']
+        with connection.cursor() as cursor:
+            query = "INSERT INTO `Friendgroup`(`groupOwner`, `groupName`, `description`) VALUES (%s,%s,%s);"
+            cursor.execute(query, (self, groupname, description))
+        query2 = "INSERT INTO `BelongTo`(`member_username`, `owner_username`, `groupName`) VALUES (%s,%s,%s);"
+        with connection.cursor() as cursor:
+            cursor.execute(query2, (self, self, groupname))
+        return render_template("friendfroup.html", username=session["username"])
+
+
+@app.route("/manageChoice", methods=["GET"])
+@login_required
+def manageChoice():
+    with connection.cursor() as cursor:
+        query = 'SELECT DISTINCT groupname FROM Friendgroup where groupOwner=%s'
+        self = session['username']
+        cursor.execute(query,self)
+        data = cursor.fetchall()
+        cursor.close()
+        return render_template('manageFriendgroup.html', friendgroup_list=data)
+
+
+@app.route("/manage2", methods=["GET"])
+@login_required
+def manage2():
+    self = session['username']
+    name = request.args['group']
+    query="select member_username as username from BelongTo where owner_username=%s and groupName=%s"
+    query2="select username from person where username not in (select member_username from BelongTo where owner_username=%s and groupName=%s)"
+    choice=request.args['choice']
+    session["choice"]=choice
+    session["group"]=name
+    with connection.cursor() as cursor:
+        if choice=="delete":
+            cursor.execute(query, (self, name))
+            data = cursor.fetchall()
+            str="remove"
+        else:
+            cursor.execute(query2,(self, name))
+            data = cursor.fetchall()
+            str="add"
+
+    return render_template("manage3.html",members=data,choice=str, group=name)
+
+
+@app.route("/manage3", methods=["GET"])
+@login_required
+def manage3():
+    name = session['group']
+    self = session['username']
+    target = request.args['name']
+    choice =session['choice']
+    query2 = "INSERT INTO `BelongTo`(`member_username`, `owner_username`, `groupName`) VALUES (%s,%s,%s);"
+    query = "DELETE from BelongTo where member_username=%s and groupName=%s and owner_username=%s"
+    with connection.cursor() as cursor:
+        if choice=="delete":
+            cursor.execute(query, (target, name ,self))
+        else:
+            cursor.execute(query2,(target, self, name))
+
+    session.pop("group")
+    session.pop("choice")
+    return render_template("friendfroup.html")
 
 
 if __name__ == "__main__":
