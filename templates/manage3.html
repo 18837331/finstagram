@@ -1,0 +1,29 @@
+<html>
+<head>
+</head>
+<body>
+
+
+{{ group }}: {{ choice }}
+<br>
+
+<form action="/manage3" method="GET">
+
+{% for line in members %}
+<input type="radio" name="name" value={{line.username}}>{{line.username}}</input>
+    <br>
+{% endfor %}
+
+
+<input type="submit" value={{ choice }}>
+
+</form>
+
+<a href="/home">back</a>
+
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>

@@ -12,15 +12,13 @@ Who would you like to follow?
 
 {% for line in user_list %}
 <input type="radio" name="user" value={{line.username}}>{{line.username}}</input>
-	<br>
+    <br>
 {% endfor %}
 
 <input type="submit" value="follow">
 
 </form>
-{% if message %}
-            {{ message }}
-        {% endif %}
+
 <a href="/home">back</a>
 
 <a href="/logout">Logout</a>

@@ -1,0 +1,30 @@
+<html>
+<body>
+
+
+Accept follow request.
+<br>
+
+<form action="/accept" method="GET">
+
+
+{% for line in user_list %}
+<input type="radio" name="user" value={{line.username_follower}}>{{line.username_follower}}</input>
+    <br>
+{% endfor %}
+<br>
+<input type="radio" name="choice" value="accept">add</input>
+<input type="radio" name="choice" value="decline">delete</input>
+<br>
+<input type="submit" value="submit">
+
+</form>
+
+<a href="/home">back</a>
+
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>

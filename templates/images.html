@@ -5,10 +5,18 @@
     <body>
         <h1>Image Gallery</h1>
         <div>
+            <form action="/view" method="GET">
             {% for image in images %}
-
-            <img src="/image/{{image.filePath}}" width="300"/>
+                <input type="radio" name="image" value={{image.photoID}}><img src="/image/{{image.filepath}}" width="300"/> </input>
+                <br>
             {% endfor %}
+
+            {% for image in images2 %}
+                <input type="radio" name="image" value={{image.photoID}}><img src="/image/{{image.filepath}}" width="300"/> </input>
+                <br>
+            {% endfor %}
+            <input type="submit" value="view">
+            </form>
         </div>
         <a href="/">Go back</a>
     </body>

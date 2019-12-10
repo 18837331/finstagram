@@ -1,0 +1,32 @@
+<html>
+    <head>
+        <title>Finstagram</title>
+    </head>
+    <body>
+        <h1>Image Gallery</h1>
+        <img src="/image/{{image.filepath}}" width="300"/>
+        <ul>
+            <li>photoID:{{ image.photoID }}</li>
+            <li>posting date:{{ image.postingdate }}</li>
+            <li>caption:{{ image.caption }}</li>
+            <li>poster first name:{{ image.firstName }}</li>
+            <li>poster last name:{{ image.lastName }}</li>
+        </ul>
+        <br>tags
+        <br>
+		{% for tag in taggs %}
+            <ul>
+            <li>username:{{ tag.username }}</li>
+            <li>first name:{{ tag.firstName }}</li>
+            <li>last name:{{ tag.lastName }}</li>
+            </ul>
+        {% endfor %}
+        <br> Likes received <br>
+        {% for like in likes %}
+            <li>Username:{{like.username}} rating:{{like.rating}}</li>
+            <br>
+        {% endfor %}
+
+
+	</body>
+</html>

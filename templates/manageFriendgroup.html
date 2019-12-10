@@ -1,0 +1,34 @@
+<html>
+<head>
+</head>
+<body>
+
+
+which to
+<br>
+
+<form action="/manage2" method="GET">
+
+
+{% for line in friendgroup_list %}
+<input type="radio" name="group" value={{line.groupname}}>{{line.groupname}}</input>
+    <br>
+{% endfor %}
+<br>
+Add to or delete from?
+<br>
+<input type="radio" name="choice" value="add">add</input>
+<input type="radio" name="choice" value="delete">delete</input>
+<br>
+<input type="submit" value="submit">
+
+</form>
+
+<a href="/home">back</a>
+
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>
